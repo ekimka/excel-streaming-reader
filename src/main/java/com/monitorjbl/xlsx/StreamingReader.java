@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.util.StaxHelper;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
+import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.model.SharedStringsTable;
 import org.apache.poi.xssf.model.StylesTable;
 import org.slf4j.Logger;
@@ -325,14 +326,14 @@ public class StreamingReader implements Iterable<Row>, AutoCloseable {
         boolean use1904Dates = false;
         XSSFReader reader = new XSSFReader(pkg);
 
-        SharedStringsTable sst;
+        SharedStrings ss;
         File sstCache = null;
         if(sstCacheSizeBytes > 0) {
           sstCache = Files.createTempFile("", "").toFile();
           log.debug("Created sst cache file [" + sstCache.getAbsolutePath() + "]");
-          sst = BufferedStringsTable.getSharedStringsTable(sstCache, sstCacheSizeBytes, pkg);
+          ss = BufferedStringsTable.getSharedStringsTable(sstCache, sstCacheSizeBytes, pkg);
         } else {
-          sst = reader.getSharedStringsTable();
+          ss = reader.getSharedStringsTable();
         }
 
         StylesTable styles = reader.getStylesTable();
@@ -350,7 +351,7 @@ public class StreamingReader implements Iterable<Row>, AutoCloseable {
 
         XMLEventReader parser = StaxHelper.newXMLInputFactory().createXMLEventReader(sheet);
 
-        return new StreamingReader(new StreamingWorkbookReader(sst, sstCache, pkg, new StreamingSheetReader(sst, styles, parser, use1904Dates, rowCacheSize),
+        return new StreamingReader(new StreamingWorkbookReader(ss, sstCache, pkg, new StreamingSheetReader(ss, styles, parser, use1904Dates, rowCacheSize),
             this));
       } catch(IOException e) {
         throw new OpenException("Failed to open file", e);

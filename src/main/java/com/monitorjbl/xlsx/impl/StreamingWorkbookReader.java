@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.util.StaxHelper;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.eventusermodel.XSSFReader.SheetIterator;
+import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.model.SharedStringsTable;
 import org.apache.poi.xssf.model.StylesTable;
 import org.slf4j.Logger;
@@ -50,7 +51,7 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
   private File tmp;
   private File sstCache;
   private OPCPackage pkg;
-  private SharedStringsTable sst;
+  private SharedStrings ss;
   private boolean use1904Dates = false;
 
   /**
@@ -58,15 +59,15 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
    * a StreamingWorkbook using its own reader implementation. Do not use
    * going forward.
    *
-   * @param sst      The SST data for this workbook
+   * @param ss      The SST data for this workbook
    * @param sstCache The backing cache file for the SST data
    * @param pkg      The POI package that should be closed when this workbook is closed
    * @param reader   A single streaming reader instance
    * @param builder  The builder containing all options
    */
   @Deprecated
-  public StreamingWorkbookReader(SharedStringsTable sst, File sstCache, OPCPackage pkg, StreamingSheetReader reader, Builder builder) {
-    this.sst = sst;
+  public StreamingWorkbookReader(SharedStrings ss, File sstCache, OPCPackage pkg, StreamingSheetReader reader, Builder builder) {
+    this.ss = ss;
     this.sstCache = sstCache;
     this.pkg = pkg;
     this.sheets = asList(new StreamingSheet(null, reader));
@@ -117,9 +118,9 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
       if(builder.getSstCacheSizeBytes() > 0) {
         sstCache = Files.createTempFile("", "").toFile();
         log.debug("Created sst cache file [" + sstCache.getAbsolutePath() + "]");
-        sst = BufferedStringsTable.getSharedStringsTable(sstCache, builder.getSstCacheSizeBytes(), pkg);
+        ss = BufferedStringsTable.getSharedStringsTable(sstCache, builder.getSstCacheSizeBytes(), pkg);
       } else {
-        sst = reader.getSharedStringsTable();
+        ss = reader.getSharedStringsTable();
       }
 
       StylesTable styles = reader.getStylesTable();
@@ -131,7 +132,7 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
         }
       }
 
-      loadSheets(reader, sst, styles, builder.getRowCacheSize());
+      loadSheets(reader, ss, styles, builder.getRowCacheSize());
     } catch(IOException e) {
       throw new OpenException("Failed to open file", e);
     } catch(OpenXML4JException | XMLStreamException e) {
@@ -141,7 +142,7 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
     }
   }
 
-  void loadSheets(XSSFReader reader, SharedStringsTable sst, StylesTable stylesTable, int rowCacheSize)
+  void loadSheets(XSSFReader reader, SharedStrings sst, StylesTable stylesTable, int rowCacheSize)
           throws IOException, InvalidFormatException, XMLStreamException {
     lookupSheetNames(reader);
 
@@ -203,11 +204,11 @@ public class StreamingWorkbookReader implements Iterable<Sheet>, AutoCloseable {
         }
         tmp.delete();
       }
-      if(sst instanceof BufferedStringsTable) {
+      if(ss instanceof BufferedStringsTable) {
         if(log.isDebugEnabled()) {
           log.debug("Deleting sst cache file [" + this.sstCache.getAbsolutePath() + "]");
         }
-        ((BufferedStringsTable) sst).close();
+        ((BufferedStringsTable) ss).close();
         sstCache.delete();
       }
     }

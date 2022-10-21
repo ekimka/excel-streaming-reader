@@ -7,7 +7,7 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.model.SharedStringsTable;
+import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRichTextString;
@@ -32,7 +32,7 @@ import java.util.Set;
 public class StreamingSheetReader implements Iterable<Row> {
   private static final Logger log = LoggerFactory.getLogger(StreamingSheetReader.class);
 
-  private final SharedStringsTable sst;
+  private final SharedStrings ss;
   private final StylesTable stylesTable;
   private final XMLEventReader parser;
   private final DataFormatter dataFormatter = new DataFormatter();
@@ -52,9 +52,9 @@ public class StreamingSheetReader implements Iterable<Row> {
   private StreamingCell currentCell;
   private boolean use1904Dates;
 
-  public StreamingSheetReader(SharedStringsTable sst, StylesTable stylesTable, XMLEventReader parser,
+  public StreamingSheetReader(SharedStrings ss, StylesTable stylesTable, XMLEventReader parser,
                               final boolean use1904Dates, int rowCacheSize) {
-    this.sst = sst;
+    this.ss = ss;
     this.stylesTable = stylesTable;
     this.parser = parser;
     this.use1904Dates = use1904Dates;
@@ -316,7 +316,7 @@ public class StreamingSheetReader implements Iterable<Row> {
       case "s":           //string stored in shared table
         if(!lastContents.isEmpty()) {
           int idx = Integer.parseInt(lastContents);
-          return new StringSupplier(sst.getItemAt(idx).toString());
+          return new StringSupplier(ss.getItemAt(idx).toString());
         }
         return new StringSupplier(lastContents);
       case "inlineStr":   //inline string (not in sst)
@@ -366,7 +366,7 @@ public class StreamingSheetReader implements Iterable<Row> {
       case "s":           //string stored in shared table
         if(!lastContents.isEmpty()) {
           int idx = Integer.parseInt(lastContents);
-          return sst.getItemAt(idx).toString();
+          return ss.getItemAt(idx).toString();
         }
         return lastContents;
       case "inlineStr":   //inline string (not in sst)
